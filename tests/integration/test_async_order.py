@@ -11,21 +11,25 @@ def test_async_queue_processing():
 
     order_id = response.json()["order_id"]
 
-    # Initial state
+    # Initial state check
     order = client.get(f"/orders/{order_id}")
     assert order.json()["status"] == "CREATED"
 
-    # ✅ POLLING INSTEAD OF FIXED SLEEP
-    timeout = 5
+    # Polling instead of fixed sleep
+    timeout = 5  # max wait time
+    interval = 0.5  # retry interval
     start_time = time.time()
+
+    final_status = None
 
     while time.time() - start_time < timeout:
         order = client.get(f"/orders/{order_id}")
-        status = order.json()["status"]
+        final_status = order.json()["status"]
 
-        if status in ["CONFIRMED", "FAILED"]:
+        if final_status in ["CONFIRMED", "FAILED"]:
             break
 
-        time.sleep(0.5)
+        time.sleep(interval)
 
-    assert status in ["CONFIRMED", "FAILED"]
+    # Step 3: Final assertion
+    assert final_status in ["CONFIRMED", "FAILED"]

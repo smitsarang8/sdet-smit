@@ -13,11 +13,8 @@ class OrderRequest(BaseModel):
     item: str
 
 orders = {}
-
-# Queue
 order_queue = Queue()
 
-# Worker
 def order_worker():
     while True:
         order_id = order_queue.get()
@@ -29,8 +26,11 @@ def order_worker():
 
         order_queue.task_done()
 
-# Start worker
-threading.Thread(target=order_worker, daemon=True).start()
+@app.on_event("startup")
+def start_worker():
+    thread = threading.Thread(target=order_worker, daemon=True)
+    thread.start()
+
 
 @app.post("/orders")
 def create_order(order: OrderRequest):
@@ -44,7 +44,11 @@ def create_order(order: OrderRequest):
 
     order_queue.put(order_id)
 
-    return {"order_id": order_id}
+    return {
+        "order_id": order_id,
+        "status": "CREATED"
+    }
+
 
 @app.get("/orders/{order_id}")
 def get_order(order_id: str):
